@@ -198,13 +198,3 @@ Configuration:
     Port    5044
 ```
 
-
-
-
-
-
-
-If you want, next step I can:
-
-* Turn this into a **polished README.md** with some ASCII diagrams, or
-* Write a **video script** (what to click and say step-by-step while recording the demo for your client).
