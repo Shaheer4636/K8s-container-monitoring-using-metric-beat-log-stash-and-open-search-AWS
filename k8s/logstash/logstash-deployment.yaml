@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logstash
+  namespace: obser
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: logstash
+  template:
+    metadata:
+      labels:
+        app: logstash
+    spec:
+      containers:
+        - name: logstash
+          image: opensearchproject/logstash-oss-with-opensearch-output-plugin:latest
+          env:
+            - name: OPENSEARCH_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: opensearch-credentials
+                  key: endpoint
+            - name: OPENSEARCH_USER
+              valueFrom:
+                secretKeyRef:
+                  name: opensearch-credentials
+                  key: username
+            - name: OPENSEARCH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: opensearch-credentials
+                  key: password
+          volumeMounts:
+            - name: pipeline
+              mountPath: /usr/share/logstash/pipeline/
+      volumes:
+        - name: pipeline
+          configMap:
+            name: logstash-pipeline

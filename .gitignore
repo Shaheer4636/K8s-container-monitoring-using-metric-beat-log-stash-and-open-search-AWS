@@ -1,0 +1,37 @@
+# Terraform state files
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+
+# Local Terraform directory
+.terraform/
+.terraform.lock.hcl
+
+# Crash logs
+crash.log
+crash.*.log
+
+# Sensitive files
+*.pem
+*.key
+*.secret
+*.env
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Logs
+logs/
+*.log
+
+# Kubernetes outputs
+k8s/*.yaml.tmp
+
+# Ignore generated files
+**/*.backup
+**/*.bak
+
+# Ignore Terraform providers (VERY IMPORTANT)
+infra/terraform/.terraform/

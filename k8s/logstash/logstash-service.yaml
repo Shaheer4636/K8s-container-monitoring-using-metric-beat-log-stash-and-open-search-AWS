@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: logstash
+  namespace: obser
+spec:
+  selector:
+    app: logstash
+  ports:
+    - name: beats
+      protocol: TCP
+      port: 5044
+      targetPort: 5044
+  type: ClusterIP

@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metricbeat-config
+  namespace: obser
+  labels:
+    app: metricbeat
+data:
+  metricbeat.yml: |-
+    ########################
+    # Basic metricbeat cfg #
+    ########################
+
+    metricbeat.config.modules:
+      path: ${path.config}/modules.d/*.yml
+      reload.enabled: false
+
+    # Optional but useful metadata
+    processors:
+      - add_cloud_metadata: {}
+      - add_host_metadata: {}
+      - add_kubernetes_metadata:
+          in_cluster: true
+
+    ################################
+    # >>> OUTPUT GOES TO LOGSTASH ##
+    ################################
+    output.logstash:
+      hosts: ["logstash.obser.svc.cluster.local:5044"]
+
+    logging.to_files: false
+    logging.to_stdout: true
+
+  kubernetes.yml: |-
+    - module: kubernetes
+      metricsets:
+        - container
+        - node
+        - pod
+        - system
+      period: 10s
+      hosts: ["https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT}"]
+      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      ssl.certificate_authorities:
+        - /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      add_metadata: true
