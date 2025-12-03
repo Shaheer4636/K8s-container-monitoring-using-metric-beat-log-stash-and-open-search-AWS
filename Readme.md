@@ -1,7 +1,3 @@
-Nice, ab isko *project* bana dete hain jo tum seedha client ko de sakho / README bana sakho.
-Neeche pura **documentation-ready** draft hai – bas repo me `README.md` ya `docs/project-overview.md` ke naam se daal do.
-
----
 
 # 1. Executive Summary
 
@@ -118,18 +114,9 @@ k8s-aws-opensearch-logging-observability/
 
 ---
 
-# 4. Deployment Workflow
 
-### 4.1 Prerequisites
 
-* AWS account (with permissions to create OpenSearch domain).
-* kubectl configured for the target Kubernetes cluster
-  (for demo you used Docker Desktop; for client this would typically be **EKS**).
-* Terraform installed (for infrastructure part).
-
----
-
-### 4.2 Provision AWS OpenSearch with Terraform
+### 4. Provision AWS OpenSearch with Terraform
 
 From `infra/terraform`:
 
@@ -145,16 +132,10 @@ Input variables (example):
 * `master_user_name = "admin"`
 * `master_user_password = "********"`
 
-Terraform outputs:
-
-* OpenSearch domain endpoint (e.g.
-  `search-k8s-logs-demo-xxxx.us-east-1.es.amazonaws.com`)
-
-For demo, access policy can be fully open (not recommended for production); for production, restrict to VPC / IAM roles.
 
 ---
 
-### 4.3 Configure Kubernetes Namespace & Secrets
+### 5 Configure Kubernetes Namespace & Secrets
 
 Create namespace:
 
@@ -177,7 +158,7 @@ This secret is used by **Logstash** and **Metricbeat**.
 
 ---
 
-### 4.4 Deploy Demo Application
+### 6 Deploy Demo Application
 
 ```bash
 kubectl apply -n obser -f k8s/demo-app/
@@ -198,7 +179,7 @@ while ($true) { curl http://localhost:8080/hello; Start-Sleep -Seconds 1 }
 
 ---
 
-### 4.5 Deploy Fluent Bit
+### 7 Deploy Fluent Bit
 
 ```bash
 kubectl apply -n obser -f k8s/fluent-bit/
@@ -217,156 +198,11 @@ Configuration:
     Port    5044
 ```
 
----
 
-### 4.6 Deploy Logstash (with OpenSearch output plugin)
 
-```bash
-kubectl apply -n obser -f k8s/logstash/logstash-deployment.yaml
-kubectl apply -n obser -f k8s/logstash/logstash-pipeline-configmap.yaml
-```
 
-Key pipeline (`logstash.conf`):
 
-```conf
-input {
-  beats {
-    port => 5044
-  }
-}
 
-filter {
-  if [kubernetes] {
-    mutate {
-      add_field => {
-        "kubernetes_namespace" => "%{[kubernetes][namespace_name]}"
-        "kubernetes_pod"       => "%{[kubernetes][pod_name]}"
-        "kubernetes_node"      => "%{[kubernetes][host]}"
-      }
-    }
-  }
-}
-
-output {
-  opensearch {
-    hosts    => [ "https://${OPENSEARCH_ENDPOINT}:443" ]
-    user     => "${OPENSEARCH_USER}"
-    password => "${OPENSEARCH_PASSWORD}"
-
-    index    => "k8s-logs-%{+YYYY.MM.dd}"
-
-    ssl                      => true
-    ssl_certificate_verification => false  # demo only
-  }
-}
-```
-
-Environment variables are populated from `opensearch-credentials` secret.
-
----
-
-### 4.7 Deploy Metricbeat
-
-```bash
-kubectl apply -n obser -f k8s/metricbeat/
-```
-
-Core `metricbeat.yml` (inside ConfigMap):
-
-```yaml
-metricbeat.modules:
-  - module: kubernetes
-    hosts: ["https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT}"]
-    # pod/node/system/container metricsets enabled
-
-output.elasticsearch:
-  hosts: ["https://${OPENSEARCH_ENDPOINT}:443"]
-  username: "${OPENSEARCH_USER}"
-  password: "${OPENSEARCH_PASSWORD}"
-```
-
-Metricbeat writes to **OpenSearch** as if it were Elasticsearch, so no code change is needed.
-
----
-
-# 5. How the Client Will Use It
-
-### 5.1 Access OpenSearch Dashboards
-
-* Open the Dashboards URL of the OpenSearch domain.
-* Login using the master credentials (or a dedicated Dashboards user).
-
-### 5.2 Configure Data Views
-
-Create data views:
-
-1. `k8s-logs-*`
-
-   * Used to search application logs.
-   * Typical filter: namespace, pod name, log level, message.
-
-2. `k8s-metrics-*`
-
-   * Used for cluster & node metrics dashboards:
-   * CPU, memory, pod count, node status, etc.
-
-### 5.3 Example Use-Cases
-
-* **Troubleshooting a failing pod**
-
-  * Filter `kubernetes_pod: demo-api-*` in `k8s-logs-*`.
-  * View recent errors/exceptions.
-
-* **Monitoring cluster health**
-
-  * Build dashboards on `k8s-metrics-*`:
-
-    * Node CPU usage
-    * Pod restarts
-    * Memory pressure
-
-* **Capacity planning**
-
-  * Use historical metrics to identify when to scale nodes or workloads.
-
----
-
-# 6. Security & Production Considerations
-
-For client documentation you can add:
-
-* **Network Security**
-
-  * Restrict OpenSearch to VPC access only.
-  * Do not use `0.0.0.0/0` in production.
-* **Authentication**
-
-  * Use fine-grained access control:
-
-    * Separate users/roles for Logstash, Metricbeat, and human users.
-* **TLS**
-
-  * Enable proper certificate verification (`ssl_certificate_verification = true`).
-* **RBAC**
-
-  * Limit Kubernetes permissions for Metricbeat/Fluent Bit to only required resources.
-* **Cost**
-
-  * Right-size OpenSearch domain (instance type, storage, number of nodes).
-  * Optionally enable index lifecycle management (ILM) to delete old indices.
-
----
-
-# 7. Possible Future Enhancements
-
-To impress the client, you can list:
-
-* Alerts via **OpenSearch Alerting** (e.g., high error rate, pod crash loop).
-* Integration with **Prometheus/Grafana** for richer metrics.
-* Log masking / PII redaction at Logstash level.
-* Multi-cluster logging (multiple clusters sending to same OpenSearch domain).
-
----
 
 If you want, next step I can:
 
